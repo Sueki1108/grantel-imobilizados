@@ -1039,10 +1039,10 @@ document.getElementById('btnCopyAll').onclick=()=>{if(!state.assetRows.length)re
  return[r.patrimonio,r.desc,r.chave,fmtData(r.data),r.valorAjustado.toFixed(2),r.cnpjFornecedor,r.nNF,r.serie,ci[0],ci[1],r.vidaUtilMeses,r.NCM,DESP_DEP_COD,DESP_DEP_DESC,da[0],da[1]].join('\t');}).join('\n');
  navigator.clipboard.writeText(tsv).then(()=>toast('Toda tabela copiada ✔','ok'),()=>toast('Falha','err'));};
 document.getElementById('btnExportFinal').onclick=()=>{if(!state.assetRows.length)return;
- const h=['PATRIMÔNIO','DESCRIÇÃO','CHAVE','DATA','V.AJUSTADO','CNPJ FORNECEDOR','FORNECEDOR','NF','SÉRIE','CONTA INC. CÓD','CONTA INC. DESC','VIDA ÚTIL','NCM','CFOP','DESCRIÇÃO CFOP','DEP DÉB CÓD','DEP DÉB DESC','DEP ACUM CÓD','DEP ACUM DESC'];
+ const h=['PATRIMÔNIO','DESCRIÇÃO','CHAVE','DATA','V.AJUSTADO','CNPJ FORNECEDOR','FORNECEDOR','NF','SÉRIE','CONTA INC. CÓD','CONTA INC. DESC','VIDA ÚTIL','NCM','DEP DÉB CÓD','DEP DÉB DESC','DEP ACUM CÓD','DEP ACUM DESC'];
  const d=state.assetRows.map(r=>{const ci=r.contaIncorpIdx>=0?CONTAS_INCORPORACAO[r.contaIncorpIdx]:['',''];const da=DEP_ACUM_MAP[r.contaIncorpIdx]||['',''];
-  return[r.patrimonio,r.desc,r.chave,fmtData(r.data),+r.valorAjustado.toFixed(2),onlyDigits(r.cnpjFornecedor),r.fornecedor||'',r.nNF,r.serie,ci[0],ci[1],r.vidaUtilMeses,r.NCM,r.CFOP||'',cfopDesc(r.CFOP),DESP_DEP_COD,DESP_DEP_DESC,da[0],da[1]];});
- const ws=XLSX.utils.aoa_to_sheet([h,...d]);ws['!cols']=[{wch:14},{wch:55},{wch:50},{wch:12},{wch:16},{wch:20},{wch:50},{wch:10},{wch:7},{wch:24},{wch:40},{wch:14},{wch:14},{wch:10},{wch:60},{wch:24},{wch:18},{wch:28},{wch:44}];
+  return[r.patrimonio,r.desc,r.chave,fmtData(r.data),+r.valorAjustado.toFixed(2),onlyDigits(r.cnpjFornecedor),r.fornecedor||'',r.nNF,r.serie,ci[0],ci[1],r.vidaUtilMeses,r.NCM,DESP_DEP_COD,DESP_DEP_DESC,da[0],da[1]];});
+ const ws=XLSX.utils.aoa_to_sheet([h,...d]);ws['!cols']=[{wch:14},{wch:55},{wch:50},{wch:12},{wch:16},{wch:20},{wch:50},{wch:10},{wch:7},{wch:24},{wch:40},{wch:14},{wch:14},{wch:24},{wch:18},{wch:28},{wch:44}];
  for(let r=1;r<=d.length;r++){const a=XLSX.utils.encode_cell({r,c:4});if(ws[a])ws[a].z='"R$"#,##0.00;-#,##0.00';}
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Imobilizados');
  XLSX.writeFile(wb,`Imobilizados_Final_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.xlsx`);toast('Excel Final baixado ✔','ok');};
