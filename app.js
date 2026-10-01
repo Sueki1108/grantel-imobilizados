@@ -687,7 +687,8 @@ const fmtData=i=>{if(!i)return'';const d=new Date(i);return isNaN(d)?i.slice(0,1
 const onlyDigits=s=>(s||'').toString().replace(/\D/g,'');
 const fmtCnpj=s=>{const d=onlyDigits(s).padStart(14,'0');return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12)}`;};
 const normStr=s=>(s||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
-function vidaUtilNcm(n){const c=onlyDigits(n);let m=null;for(const r of NCM_VIDA)if(c.startsWith(r.prefix)&&(m===null||r.prefix.length>m.prefix.length))m=r;return m?m.anos*12:120;}
+function vidaUtilNcm(n){const c=onlyDigits(n);let m=null;for(const r of NCM_VIDA)if(c.startsWith(r.prefix)&&(m===null||r.prefix.length>m.prefix.length))m=r;const meses=m?m.anos*12:120;return isNaN(meses)||meses<=0?120:meses;}
+
 
 // ===== PARSE XML =====
 function splitBlocks(t){const b=[];
@@ -851,7 +852,9 @@ function renderScreening(){const tb=document.querySelector('#screeningTable tbod
     ?`<b>Nenhum item ainda.</b>Carregue XMLs acima 👆 ou clique em "🧪 Exemplos" para testar rapidamente.`
     :`<b>Nenhum item corresponde aos filtros.</b>Tente limpar a busca ou remover filtros de fornecedor/NCM.`;
   tb.innerHTML=`<tr><td colspan="16"><div class="empty">${hint}</div></td></tr>`;return;}
- rows.forEach((r,idx)=>{const tr=document.createElement('tr');tr.innerHTML=`
+ rows.forEach((r,idx)=>{const vu=(r.vidaUtilMeses>0)?r.vidaUtilMeses:vidaUtilNcm(r.NCM);
+ if(!(r.contaIncorpIdx>=0))r.contaIncorpIdx=contaIncorpNcm(r.NCM);
+ r.vidaUtilMeses=vu;const tr=document.createElement('tr');tr.innerHTML=`
  <td class="num mono">${idx+1}</td>
  <td class="copy-cell mono" data-c="${r.chave}">${r.chave||'-'}</td>
  <td class="copy-cell wrap" data-c="${r.desc.replace(/"/g,'&quot;')}">${r.desc}</td>
@@ -869,12 +872,15 @@ function renderScreening(){const tb=document.querySelector('#screeningTable tbod
  tb.addEventListener('input',e=>{const inp=e.target.closest('input.i,select.i');if(!inp)return;const tr=inp.closest('tr');const rows2=filteredScreening();const idx2=[...tb.querySelectorAll('tbody tr')].indexOf(tr);if(idx2<0)return;const r=rows2[idx2];if(!r)return;const f=inp.dataset.f;let v=inp.value;if(f==='contaIncorpIdx'||f==='vidaUtilMeses')v=parseInt(v);
   r[f]=v;if(f==='contaIncorpIdx'||f==='vidaUtilMeses')toast('Atualizado ✔','ok');},{passive:true});
  tb.addEventListener('click',e=>{const btn=e.target.closest('[data-act="multiply"]');if(!btn)return;const tr=btn.closest('tr');const rows2=filteredScreening();const filteredIdx=[...tb.querySelectorAll('tr')].indexOf(tr)-1;const r=rows2[filteredIdx];if(!r)return;const ans=prompt(`Multiplicar item por quantas unidades?\n\nItem: ${r.desc.slice(0,80)}\nValor total atual: R$ ${fmtBRL(r.vTotal)}\n\nDigite um número inteiro >= 2:`,String(Math.max(2,Math.round(r.qCom)||2)));if(ans===null)return;const n=parseInt(ans);if(!n||n<2){toast('Quantidade inválida (use número inteiro >= 2)','err');return;}
- const realIdx=state.screeningRows.indexOf(r);if(realIdx<0)return;const tot=r.vTotal;const unit=tot/n;const pieces=Array.from({length:n}).map(()=>+unit.toFixed(2));pieces[pieces.length-1]+=tot-pieces.reduce((a,b)=>a+b,0);const newRows=pieces.map(v=>{const nr={...r,qCom:1,vTotal:+v.toFixed(2),vUnit:+v.toFixed(2)};return nr;});state.screeningRows.splice(realIdx,1,...newRows);renderScreening();toast(`Item multiplicado em <b>${n}</b> unidade(s) (soma mantida R$ ${fmtBRL(tot)}) ✔`,'ok');},{once:true});}
+ const realIdx=state.screeningRows.indexOf(r);if(realIdx<0)return;const tot=r.vTotal;const unit=tot/n;const pieces=Array.from({length:n}).map(()=>+unit.toFixed(2));pieces[pieces.length-1]+=tot-pieces.reduce((a,b)=>a+b,0);const newRows=pieces.map(v=>{const nr={...r,qCom:1,vTotal:+v.toFixed(2),vUnit:+v.toFixed(2),vidaUtilMeses:r.vidaUtilMeses>0?r.vidaUtilMeses:vidaUtilNcm(r.NCM),contaIncorpIdx:(r.contaIncorpIdx>=0)?r.contaIncorpIdx:contaIncorpNcm(r.NCM)};return nr;});state.screeningRows.splice(realIdx,1,...newRows);renderScreening();toast(`Item multiplicado em <b>${n}</b> unidade(s) (soma mantida R$ ${fmtBRL(tot)}) ✔`,'ok');},{once:true});}
 
 document.getElementById('btnExportScreening').onclick=()=>{if(!state.screeningRows.length)return;
  const h=['CHAVE DE ACESSO','FORNECEDOR','CNPJ FORNECEDOR','Nº NOTA','SÉRIE','DATA EMISSÃO','DESCRIÇÃO DO ITEM','VALOR UNIT.','QUANTIDADE','UNIDADE','VALOR TOTAL','CFOP','DESCRIÇÃO CFOP','NCM','CONTA INC. CÓD','CONTA INC. DESC','VIDA ÚTIL (MESES)'];
- const d=state.screeningRows.map(r=>{const ci=r.contaIncorpIdx>=0?CONTAS_INCORPORACAO[r.contaIncorpIdx]:['',''];
-  return[r.chave,r.fornecedor,onlyDigits(r.cnpj),r.nNF,r.serie,r.data?fmtData(r.data):'',r.desc,+r.vUnit.toFixed(2),r.qCom,r.uCom,+r.vTotal.toFixed(2),r.CFOP,cfopDesc(r.CFOP),r.NCM,ci[0],ci[1],r.vidaUtilMeses];});
+ const d=state.screeningRows.map(r=>{
+  const cii=(r.contaIncorpIdx>=0)?r.contaIncorpIdx:contaIncorpNcm(r.NCM);
+  const vida=(r.vidaUtilMeses>0)?r.vidaUtilMeses:vidaUtilNcm(r.NCM);
+  const ci=cii>=0?CONTAS_INCORPORACAO[cii]:['',''];
+  return[r.chave,r.fornecedor,onlyDigits(r.cnpj),r.nNF,r.serie,r.data?fmtData(r.data):'',r.desc,+r.vUnit.toFixed(2),r.qCom,r.uCom,+r.vTotal.toFixed(2),r.CFOP,cfopDesc(r.CFOP),r.NCM,ci[0],ci[1],vida];});
  const ws=XLSX.utils.aoa_to_sheet([h,...d]);ws['!cols']=[{wch:50},{wch:50},{wch:20},{wch:10},{wch:8},{wch:12},{wch:60},{wch:14},{wch:11},{wch:9},{wch:14},{wch:10},{wch:60},{wch:14},{wch:24},{wch:44},{wch:16}];
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Triagem_Imobilizados');
  XLSX.writeFile(wb,`Triagem_Imobilizados_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.xlsx`);toast('Planilha de Triagem baixada ✔','ok');};
