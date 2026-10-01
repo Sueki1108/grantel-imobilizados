@@ -950,7 +950,7 @@ function procPlanilha(lin){if(!lin.length){toast('Planilha vazia','err');return;
  toast(`${rows.length} <b>patrimônio(s)</b> pronto(s) • ${falt} sem correspondência no XML`,rows.length?'ok':(falt?'warn':'info'));}
 
 // ===== RENDER ATIVOS =====
-function optCI(si=-1){return`<option value="-1">-- Selecione --</option>`+CONTAS_INCORPORACAO.map((c,i)=>`<option value="${i}" ${i===si?'selected':''}>${c[0]} — ${c[1]}</option>`).join('');}
+function optCI(si=-1){const sn=parseInt(si);return`<option value="-1">-- Selecione --</option>`+CONTAS_INCORPORACAO.map((c,i)=>`<option value="${i}" ${i===sn?'selected':''}>${c[0]} — ${c[1]}</option>`).join('');}
 
 function sortedAssets(base){const s=state.ui.astSort;if(!s)return base.slice();
  const [k,dir='asc']=s.split('-');const m=dir==='desc'?-1:1;
@@ -983,8 +983,12 @@ function renderAssets(){const tb=document.querySelector('#assetsTable tbody');if
  const rows=filteredAssets();
  if(!rows.length){
   tb.innerHTML=`<tr><td colspan="17"><div class="empty"><b>Nenhum ativo corresponde aos filtros.</b>Limpe a busca ou remova o filtro de conta.</div></td></tr>`;return;}
- rows.forEach((r,i)=>{const tr=document.createElement('tr');tr.dataset.i=state.assetRows.indexOf(r);buildRow(tr,r,+tr.dataset.i);tb.appendChild(tr);});bindRowEvents(tb);}
-function buildRow(tr,r,i){const ci=r.contaIncorpIdx>=0?CONTAS_INCORPORACAO[r.contaIncorpIdx]:['',''];const da=DEP_ACUM_MAP[r.contaIncorpIdx]||['',''];
+ rows.forEach((r,i)=>{const tr=document.createElement('tr');tr.dataset.i=state.assetRows.indexOf(r);
+ if(!(r.contaIncorpIdx>=0))r.contaIncorpIdx=contaIncorpNcm(r.NCM);
+ if(!r.vidaUtilMeses||isNaN(+r.vidaUtilMeses)||r.vidaUtilMeses<=0)r.vidaUtilMeses=vidaUtilNcm(r.NCM);
+ buildRow(tr,r,+tr.dataset.i);tb.appendChild(tr);});bindRowEvents(tb);}
+function buildRow(tr,r,i){const cii=parseInt(r.contaIncorpIdx);const ci=(cii>=0?CONTAS_INCORPORACAO[cii]:null)||['',''];const da=DEP_ACUM_MAP[cii]||['',''];
+ const vm=Math.max(1,parseInt(r.vidaUtilMeses)||vidaUtilNcm(r.NCM));r.vidaUtilMeses=vm;r.contaIncorpIdx=cii;
  tr.innerHTML=`<td><input class="i" type="text" data-f="patrimonio" value="${(r.patrimonio||'').replace(/"/g,'&quot;')}" placeholder="Preencher..." /></td>
  <td class="copy-cell wrap" data-c="${r.desc.replace(/"/g,'&quot;')}">${r.desc}</td>
  <td class="copy-cell mono" data-c="${r.chave}">${r.chave||'-'}</td>
@@ -992,9 +996,9 @@ function buildRow(tr,r,i){const ci=r.contaIncorpIdx>=0?CONTAS_INCORPORACAO[r.con
  <td class="num copy-cell" data-c="${r.valorAjustado.toFixed(2)}">R$ ${fmtBRL(r.valorAjustado)}</td>
  <td class="copy-cell mono" data-c="${r.cnpjFornecedor}">${fmtCnpj(r.cnpjFornecedor)}</td>
  <td class="num">${r.nNF}</td><td class="num">${r.serie||'-'}</td>
- <td><select class="i" data-f="contaIncorpIdx">${optCI(r.contaIncorpIdx)}</select></td>
+ <td><select class="i" data-f="contaIncorpIdx">${optCI(cii)}</select></td>
  <td class="wrap">${ci[1]}</td>
- <td class="num"><input class="i" type="number" data-f="vidaUtilMeses" value="${r.vidaUtilMeses}" min="0" /></td>
+ <td class="num"><input class="i" type="number" data-f="vidaUtilMeses" value="${vm}" min="1" /></td>
  <td class="mono">${r.NCM}</td>
  <td class="copy-cell mono" data-c="${DESP_DEP_COD}">${DESP_DEP_COD}</td>
  <td class="copy-cell" data-c="${DESP_DEP_DESC}">${DESP_DEP_DESC}</td>
