@@ -600,7 +600,7 @@ const CFOP_MAP={
  '9283':'Outra saída de material de embalagem - exportação','9284':'Outra saída de material de comunicação / marketing / brinde - exportação',
  '9285':'Outra saída de produto alimentício - exportação','9299':'Outras saídas / operações comerciais e fiscais diversas'
 };
-function cfopDesc(c){if(!c)return '';const k=String(c).trim();return CFOP_MAP[k]||(k.length===4 && !/^51|61|11|21|31|41|52|53|54|55|56|57|58|59|62|63|64|65|66|67|68|69|71|72|73|74|75|81|82|85|89|91|92/.test(k))?'(CFOP '+k+' - desconhecido)':'CFOP '+k;}
+function cfopDesc(c){if(!c)return '';const k=String(c).trim();if(CFOP_MAP[k])return CFOP_MAP[k];if(k.length===4&&/^\d{4}$/){const okPrefix=/^51|61|11|21|31|41|52|53|54|55|56|57|58|59|62|63|64|65|66|67|68|69|71|72|73|74|75|81|82|85|89|91|92/.test(k);return okPrefix?('CFOP '+k):('(CFOP '+k+' - desconhecido)');}return 'CFOP '+k;}
 
 const NCM_VIDA=[
  {prefix:'847130',desc:'Microcomputadores Desktop/Notebook',anos:5,taxa:20},
