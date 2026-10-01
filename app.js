@@ -152,10 +152,16 @@ function setupTabs(){document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>
 
 // ===== ABA 1 — TRIAGEM =====
 function setupXml(){const drop=document.getElementById('xmlDrop'),inp=document.getElementById('xmlFile'),list=document.getElementById('xmlFileList');
+ function renderFiles(arr){
+  if(!arr.length){list.innerHTML='';return;}
+  const sum=document.createElement('span');sum.className='file-summary';sum.innerHTML=`📎 <b>${arr.length}</b> arquivo(s) carregado(s)`;list.appendChild(sum);
+  const MAX=5;const show=arr.slice(0,MAX);const extra=arr.length-MAX;
+  show.forEach(f=>{const t=document.createElement('span');t.className='file-chip';t.title=f.name;t.innerHTML='📄 '+f.name;list.appendChild(t);});
+  if(extra>0){const t=document.createElement('span');t.className='file-chip';t.style.background='var(--warning-soft)';t.style.color='var(--warning)';t.innerHTML=`+${extra} mais`;list.appendChild(t);}
+ }
  function procFiles(fs){const arr=Array.from(fs).filter(f=>/\.(xml|txt)$/i.test(f.name));if(!arr.length){toast('Nenhum XML/TXT válido','err');return;}
-  list.innerHTML='';Promise.all(arr.map(f=>{const t=document.createElement('span');t.className='file-chip';t.innerHTML='📄 '+f.name;list.appendChild(t);
-    return new Promise(r=>{const rd=new FileReader();rd.onload=()=>r(rd.result||'');rd.onerror=()=>r('');rd.readAsText(f,'UTF-8');});
-  })).then(ts=>procXmlRaw(ts.join('\n')));}
+  list.innerHTML='';renderFiles(arr);
+  Promise.all(arr.map(f=>new Promise(r=>{const rd=new FileReader();rd.onload=()=>r(rd.result||'');rd.onerror=()=>r('');rd.readAsText(f,'UTF-8');}))).then(ts=>procXmlRaw(ts.join('\n')));}
  drop.onclick=e=>{if(e.target.tagName!=='INPUT')inp.click();};
  inp.onchange=e=>procFiles(e.target.files);
  ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('dragover');}));

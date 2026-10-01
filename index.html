@@ -125,10 +125,20 @@
     font-size:12.5px;color:var(--muted);font-weight:500;line-height:1.5;
   }
   .upload input{display:none !important}
-  .files{margin-top:14px;display:flex;flex-wrap:wrap;gap:6px}
+  .files{
+    margin-top:12px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;
+    max-height:84px;overflow-y:auto;padding:4px 2px;border-radius:10px;
+    background:var(--bg-2);border:1px solid var(--border);
+  }
+  .files:empty{display:none}
   .file-chip{
     display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;
-    background:var(--accent-soft);color:var(--accent);font-size:11.5px;font-weight:600;border:1px solid transparent;
+    background:var(--accent-soft);color:var(--accent);font-size:11.5px;font-weight:600;
+    border:1px solid transparent;max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .file-summary{
+    display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;
+    background:var(--success-soft);color:var(--success);font-size:12px;font-weight:600;border:1px solid var(--border);
   }
 
   .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
