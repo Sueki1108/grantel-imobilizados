@@ -17,6 +17,23 @@ const DEP_ACUM_MAP={
   9:['1.2.03.02.0009','( - ) Depreciação Acumulada - Ferramentas'],
  10:['1.2.03.02.0010','( - ) Depreciação Acumulada - Benfeitorias'],
  12:['1.2.03.02.0011','( - ) Depreciação Acumulada - Implementos Rodoviários']};
+const NCM_CONTA_INC=[
+ {prefix:'44',ci:0},
+ {prefix:'7210',ci:3},{prefix:'7208',ci:3},{prefix:'7209',ci:3},{prefix:'7308',ci:3},{prefix:'7306',ci:3},{prefix:'7301',ci:3},{prefix:'7604',ci:3},
+ {prefix:'8544',ci:3},{prefix:'8537',ci:3},{prefix:'8504',ci:3},{prefix:'8501',ci:3},{prefix:'8536',ci:3},
+ {prefix:'6810',ci:3},{prefix:'6811',ci:3},{prefix:'6901',ci:3},{prefix:'6902',ci:3},{prefix:'6903',ci:3},{prefix:'6904',ci:3},{prefix:'6905',ci:3},{prefix:'6906',ci:3},{prefix:'6910',ci:3},{prefix:'6911',ci:3},{prefix:'6912',ci:3},
+ {prefix:'847130',ci:8},{prefix:'847141',ci:8},{prefix:'847160',ci:8},{prefix:'8471',ci:8},
+ {prefix:'851762',ci:8},{prefix:'8517',ci:8},{prefix:'8528',ci:8},{prefix:'8525',ci:8},{prefix:'8531',ci:4},
+ {prefix:'8507',ci:8},{prefix:'8703',ci:5},{prefix:'870421',ci:5},{prefix:'870422',ci:6},{prefix:'870423',ci:6},{prefix:'870431',ci:5},{prefix:'8704',ci:6},
+ {prefix:'8705',ci:7},{prefix:'8709',ci:7},{prefix:'8716',ci:12},
+ {prefix:'8456',ci:7},{prefix:'8457',ci:7},{prefix:'8458',ci:7},{prefix:'8459',ci:7},{prefix:'8460',ci:7},{prefix:'8461',ci:7},{prefix:'8462',ci:7},{prefix:'8463',ci:7},
+ {prefix:'8464',ci:7},{prefix:'8477',ci:7},{prefix:'8438',ci:7},{prefix:'8419',ci:7},{prefix:'8421',ci:7},{prefix:'8422',ci:7},
+ {prefix:'8414',ci:7},{prefix:'8413',ci:7},{prefix:'8418',ci:7},{prefix:'8417',ci:7},{prefix:'8408',ci:7},{prefix:'8407',ci:7},
+ {prefix:'8429',ci:7},{prefix:'8430',ci:7},{prefix:'84',ci:7},
+ {prefix:'82',ci:9},
+ {prefix:'940360',ci:2},{prefix:'9403',ci:2},{prefix:'9401',ci:2},{prefix:'9402',ci:2},
+ {prefix:'9405',ci:2},{prefix:'70',ci:11},{prefix:'80',ci:11},{prefix:'71',ci:11}];
+function contaIncorpNcm(n){const c=onlyDigits(n||'');let m=null;for(const r of NCM_CONTA_INC)if(c.startsWith(r.prefix)&&(m===null||r.prefix.length>m.prefix.length))m=r;return m?m.ci:2;}
 const DESP_DEP_COD='4.1.05.01.0001', DESP_DEP_DESC='Depreciação';
 
 const CFOP_MAP={
@@ -788,7 +805,7 @@ function refreshFornDropdown(){const sel=document.getElementById('scrForn');if(!
  sel.value=cur;}
 
 function buildScreening(){const r=[];for(const n of state.notas)for(const it of n.itens){const vu=it.qCom>0?it.vAjustado/it.qCom:it.vAjustado;
- if(vu<1200)continue;r.push({chave:n.chave,desc:it.xProd,vUnit:vu,qCom:it.qCom,vTotal:it.vAjustado,CFOP:it.CFOP,NCM:it.NCM,fornecedor:n.emitXNome,cnpj:n.emitCNPJ,nNF:n.nNF,serie:n.serie,data:n.dhEmi,uCom:it.uCom});}state.screeningRows=r;}
+ if(vu<1200)continue;r.push({chave:n.chave,desc:it.xProd,vUnit:vu,qCom:it.qCom,vTotal:it.vAjustado,CFOP:it.CFOP,NCM:it.NCM,fornecedor:n.emitXNome,cnpj:n.emitCNPJ,nNF:n.nNF,serie:n.serie,data:n.dhEmi,uCom:it.uCom,vidaUtilMeses:vidaUtilNcm(it.NCM),contaIncorpIdx:contaIncorpNcm(it.NCM)});}state.screeningRows=r;}
 
 function sortedScreening(){const k=state.ui.scrSort.k,dir=state.ui.scrSort.dir==='asc'?1:-1;
  const arr=state.screeningRows.map((r,i)=>({r,i}));
@@ -833,7 +850,7 @@ function renderScreening(){const tb=document.querySelector('#screeningTable tbod
   const hint=!state.screeningRows.length
     ?`<b>Nenhum item ainda.</b>Carregue XMLs acima 👆 ou clique em "🧪 Exemplos" para testar rapidamente.`
     :`<b>Nenhum item corresponde aos filtros.</b>Tente limpar a busca ou remover filtros de fornecedor/NCM.`;
-  tb.innerHTML=`<tr><td colspan="14"><div class="empty">${hint}</div></td></tr>`;return;}
+  tb.innerHTML=`<tr><td colspan="16"><div class="empty">${hint}</div></td></tr>`;return;}
  rows.forEach((r,idx)=>{const tr=document.createElement('tr');tr.innerHTML=`
  <td class="num mono">${idx+1}</td>
  <td class="copy-cell mono" data-c="${r.chave}">${r.chave||'-'}</td>
@@ -846,14 +863,19 @@ function renderScreening(){const tb=document.querySelector('#screeningTable tbod
  <td class="copy-cell mono" data-c="${r.cnpj}">${fmtCnpj(r.cnpj)}</td>
  <td class="num">${r.nNF}</td><td class="num">${r.serie||'-'}</td>
  <td>${fmtData(r.data)}</td>
+ <td><select class="i" data-f="contaIncorpIdx" style="min-width:210px">${optCI(r.contaIncorpIdx)}</select></td>
+ <td><input class="i" type="number" data-f="vidaUtilMeses" value="${r.vidaUtilMeses}" min="1" style="width:86px" /></td>
  <td><button class="btn ghost xs" data-act="multiply" title="Multiplicar este item em N unidades (ex.: 1 item descrito como 47 unidades)">✕ N</button></td>`;tb.appendChild(tr);});bindCopy(tb);
- tb.addEventListener('click',e=>{const btn=e.target.closest('[data-act="multiply"]');if(!btn)return;const tr=btn.closest('tr');const filteredIdx=[...tb.querySelectorAll('tr')].indexOf(tr)-1;const r=rows[filteredIdx];if(!r)return;const ans=prompt(`Multiplicar item por quantas unidades?\n\nItem: ${r.desc.slice(0,80)}\nValor total atual: R$ ${fmtBRL(r.vTotal)}\n\nDigite um número inteiro >= 2:`,String(Math.max(2,Math.round(r.qCom)||2)));if(ans===null)return;const n=parseInt(ans);if(!n||n<2){toast('Quantidade inválida (use número inteiro >= 2)','err');return;}
+ tb.addEventListener('input',e=>{const inp=e.target.closest('input.i,select.i');if(!inp)return;const tr=inp.closest('tr');const rows2=filteredScreening();const idx2=[...tb.querySelectorAll('tbody tr')].indexOf(tr);if(idx2<0)return;const r=rows2[idx2];if(!r)return;const f=inp.dataset.f;let v=inp.value;if(f==='contaIncorpIdx'||f==='vidaUtilMeses')v=parseInt(v);
+  r[f]=v;if(f==='contaIncorpIdx'||f==='vidaUtilMeses')toast('Atualizado ✔','ok');},{passive:true});
+ tb.addEventListener('click',e=>{const btn=e.target.closest('[data-act="multiply"]');if(!btn)return;const tr=btn.closest('tr');const rows2=filteredScreening();const filteredIdx=[...tb.querySelectorAll('tr')].indexOf(tr)-1;const r=rows2[filteredIdx];if(!r)return;const ans=prompt(`Multiplicar item por quantas unidades?\n\nItem: ${r.desc.slice(0,80)}\nValor total atual: R$ ${fmtBRL(r.vTotal)}\n\nDigite um número inteiro >= 2:`,String(Math.max(2,Math.round(r.qCom)||2)));if(ans===null)return;const n=parseInt(ans);if(!n||n<2){toast('Quantidade inválida (use número inteiro >= 2)','err');return;}
  const realIdx=state.screeningRows.indexOf(r);if(realIdx<0)return;const tot=r.vTotal;const unit=tot/n;const pieces=Array.from({length:n}).map(()=>+unit.toFixed(2));pieces[pieces.length-1]+=tot-pieces.reduce((a,b)=>a+b,0);const newRows=pieces.map(v=>{const nr={...r,qCom:1,vTotal:+v.toFixed(2),vUnit:+v.toFixed(2)};return nr;});state.screeningRows.splice(realIdx,1,...newRows);renderScreening();toast(`Item multiplicado em <b>${n}</b> unidade(s) (soma mantida R$ ${fmtBRL(tot)}) ✔`,'ok');},{once:true});}
 
 document.getElementById('btnExportScreening').onclick=()=>{if(!state.screeningRows.length)return;
- const h=['CHAVE DE ACESSO','FORNECEDOR','CNPJ FORNECEDOR','Nº NOTA','SÉRIE','DATA EMISSÃO','DESCRIÇÃO DO ITEM','VALOR UNIT.','QUANTIDADE','UNIDADE','VALOR TOTAL','CFOP','DESCRIÇÃO CFOP','NCM'];
- const d=state.screeningRows.map(r=>[r.chave,r.fornecedor,onlyDigits(r.cnpj),r.nNF,r.serie,r.data?fmtData(r.data):'',r.desc,+r.vUnit.toFixed(2),r.qCom,r.uCom,+r.vTotal.toFixed(2),r.CFOP,cfopDesc(r.CFOP),r.NCM]);
- const ws=XLSX.utils.aoa_to_sheet([h,...d]);ws['!cols']=[{wch:50},{wch:50},{wch:20},{wch:10},{wch:8},{wch:12},{wch:60},{wch:14},{wch:11},{wch:9},{wch:14},{wch:10},{wch:60},{wch:14}];
+ const h=['CHAVE DE ACESSO','FORNECEDOR','CNPJ FORNECEDOR','Nº NOTA','SÉRIE','DATA EMISSÃO','DESCRIÇÃO DO ITEM','VALOR UNIT.','QUANTIDADE','UNIDADE','VALOR TOTAL','CFOP','DESCRIÇÃO CFOP','NCM','CONTA INC. CÓD','CONTA INC. DESC','VIDA ÚTIL (MESES)'];
+ const d=state.screeningRows.map(r=>{const ci=r.contaIncorpIdx>=0?CONTAS_INCORPORACAO[r.contaIncorpIdx]:['',''];
+  return[r.chave,r.fornecedor,onlyDigits(r.cnpj),r.nNF,r.serie,r.data?fmtData(r.data):'',r.desc,+r.vUnit.toFixed(2),r.qCom,r.uCom,+r.vTotal.toFixed(2),r.CFOP,cfopDesc(r.CFOP),r.NCM,ci[0],ci[1],r.vidaUtilMeses];});
+ const ws=XLSX.utils.aoa_to_sheet([h,...d]);ws['!cols']=[{wch:50},{wch:50},{wch:20},{wch:10},{wch:8},{wch:12},{wch:60},{wch:14},{wch:11},{wch:9},{wch:14},{wch:10},{wch:60},{wch:14},{wch:24},{wch:44},{wch:16}];
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Triagem_Imobilizados');
  XLSX.writeFile(wb,`Triagem_Imobilizados_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.xlsx`);toast('Planilha de Triagem baixada ✔','ok');};
 
@@ -891,7 +913,13 @@ function normCols(r){const o={};for(const k of Object.keys(r)){const kn=k.normal
  else if(/DATA/.test(kn))o.data=v;
  else if(/CFOP/.test(kn))o.CFOP=v;
  else if(/PATRIM/.test(kn))o.patrimonio=r[k].toString().trim();
- else if(/VIDA\s*UTIL/.test(kn))o.vidaUtil=parseInt(v)||0;}return o;}
+ else if(/VIDA\s*UTIL/.test(kn))o.vidaUtil=parseInt(v)||0;
+ else if(/CONTA\s+INC/.test(kn)){
+  if(!o.contaIncorpCod){const d=onlyDigits(v);if(d)o.contaIncorpCod=d;}
+  if(!o.contaIdxStr){const str=r[k].toString().trim();if(str){const i=CONTAS_INCORPORACAO.findIndex(c=>c[1]===str);if(i>=0)o.contaIncorpIdx=i;}}
+ }}
+ if(o.contaIncorpCod&&(o.contaIncorpIdx===undefined||o.contaIncorpIdx<0)){const idx=CONTAS_INCORPORACAO.findIndex(c=>onlyDigits(c[0])===o.contaIncorpCod);if(idx>=0)o.contaIncorpIdx=idx;}
+ return o;}
 
 function procPlanilha(lin){if(!lin.length){toast('Planilha vazia','err');return;}const reqs=lin.map(normCols);
  const nc={};for(const n of state.notas)if(n.chave)nc[n.chave]=n;const rows=[];let falt=0;
@@ -908,7 +936,9 @@ function procPlanilha(lin){if(!lin.length){toast('Planilha vazia','err');return;
   else{const us=new Set();for(const rr of rows)if(rr._nc===nota.chave)us.add(rr._ni);sel=nota.itens.find((it,i)=>!us.has(i))||nota.itens[0];}
   if(!sel){falt++;continue;}const q=sel.qCom,ips=[];
   if(deveDesdobrar(sel.uCom,q)){const vu=sel.vAjustado/q;for(let k=0;k<q;k++)ips.push(vu);ips[ips.length-1]+=sel.vAjustado-ips.reduce((a,b)=>a+b,0);}else ips.push(sel.vAjustado);
-  for(const v of ips)rows.push({patrimonio:req.patrimonio||'',desc:sel.xProd,chave:nota.chave,data:nota.dhEmi,valorAjustado:v,cnpjFornecedor:nota.emitCNPJ,fornecedor:nota.emitXNome,CFOP:sel.CFOP,nNF:nota.nNF,serie:nota.serie||'',contaIncorpIdx:-1,vidaUtilMeses:req.vidaUtil||vidaUtilNcm(sel.NCM),NCM:sel.NCM,_nc:nota.chave,_ni:sel.nItem});}
+  const vid=(req.vidaUtil>0)?req.vidaUtil:vidaUtilNcm(sel.NCM);
+  const cii=((req.contaIncorpIdx!==undefined&&req.contaIncorpIdx>=0)?req.contaIncorpIdx:contaIncorpNcm(sel.NCM));
+  for(const v of ips)rows.push({patrimonio:req.patrimonio||'',desc:sel.xProd,chave:nota.chave,data:nota.dhEmi,valorAjustado:v,cnpjFornecedor:nota.emitCNPJ,fornecedor:nota.emitXNome,CFOP:sel.CFOP,nNF:nota.nNF,serie:nota.serie||'',contaIncorpIdx:cii,vidaUtilMeses:vid,NCM:sel.NCM,_nc:nota.chave,_ni:sel.nItem});}
  state.assetRows=rows;refreshCIDropdown();renderAssets();
  document.getElementById('assetsCard').classList.toggle('hidden',!rows.length);
  toast(`${rows.length} <b>patrimônio(s)</b> pronto(s) • ${falt} sem correspondência no XML`,rows.length?'ok':(falt?'warn':'info'));}
