@@ -833,7 +833,7 @@ function renderScreening(){const tb=document.querySelector('#screeningTable tbod
   const hint=!state.screeningRows.length
     ?`<b>Nenhum item ainda.</b>Carregue XMLs acima 👆 ou clique em "🧪 Exemplos" para testar rapidamente.`
     :`<b>Nenhum item corresponde aos filtros.</b>Tente limpar a busca ou remover filtros de fornecedor/NCM.`;
-  tb.innerHTML=`<tr><td colspan="13"><div class="empty">${hint}</div></td></tr>`;return;}
+  tb.innerHTML=`<tr><td colspan="14"><div class="empty">${hint}</div></td></tr>`;return;}
  rows.forEach((r,idx)=>{const tr=document.createElement('tr');tr.innerHTML=`
  <td class="num mono">${idx+1}</td>
  <td class="copy-cell mono" data-c="${r.chave}">${r.chave||'-'}</td>
@@ -845,7 +845,10 @@ function renderScreening(){const tb=document.querySelector('#screeningTable tbod
  <td class="copy-cell wrap" data-c="${r.fornecedor}">${r.fornecedor}</td>
  <td class="copy-cell mono" data-c="${r.cnpj}">${fmtCnpj(r.cnpj)}</td>
  <td class="num">${r.nNF}</td><td class="num">${r.serie||'-'}</td>
- <td>${fmtData(r.data)}</td>`;tb.appendChild(tr);});bindCopy(tb);}
+ <td>${fmtData(r.data)}</td>
+ <td><button class="btn ghost xs" data-act="multiply" title="Multiplicar este item em N unidades (ex.: 1 item descrito como 47 unidades)">✕ N</button></td>`;tb.appendChild(tr);});bindCopy(tb);
+ tb.addEventListener('click',e=>{const btn=e.target.closest('[data-act="multiply"]');if(!btn)return;const tr=btn.closest('tr');const filteredIdx=[...tb.querySelectorAll('tr')].indexOf(tr)-1;const r=rows[filteredIdx];if(!r)return;const ans=prompt(`Multiplicar item por quantas unidades?\n\nItem: ${r.desc.slice(0,80)}\nValor total atual: R$ ${fmtBRL(r.vTotal)}\n\nDigite um número inteiro >= 2:`,String(Math.max(2,Math.round(r.qCom)||2)));if(ans===null)return;const n=parseInt(ans);if(!n||n<2){toast('Quantidade inválida (use número inteiro >= 2)','err');return;}
+ const realIdx=state.screeningRows.indexOf(r);if(realIdx<0)return;const tot=r.vTotal;const unit=tot/n;const pieces=Array.from({length:n}).map(()=>+unit.toFixed(2));pieces[pieces.length-1]+=tot-pieces.reduce((a,b)=>a+b,0);const newRows=pieces.map(v=>{const nr={...r,qCom:1,vTotal:+v.toFixed(2),vUnit:+v.toFixed(2)};return nr;});state.screeningRows.splice(realIdx,1,...newRows);renderScreening();toast(`Item multiplicado em <b>${n}</b> unidade(s) (soma mantida R$ ${fmtBRL(tot)}) ✔`,'ok');},{once:true});}
 
 document.getElementById('btnExportScreening').onclick=()=>{if(!state.screeningRows.length)return;
  const h=['CHAVE DE ACESSO','FORNECEDOR','CNPJ FORNECEDOR','Nº NOTA','SÉRIE','DATA EMISSÃO','DESCRIÇÃO DO ITEM','VALOR UNIT.','QUANTIDADE','UNIDADE','VALOR TOTAL','CFOP','DESCRIÇÃO CFOP','NCM'];
@@ -961,7 +964,10 @@ function buildRow(tr,r,i){const ci=r.contaIncorpIdx>=0?CONTAS_INCORPORACAO[r.con
  <td class="copy-cell" data-c="${DESP_DEP_DESC}">${DESP_DEP_DESC}</td>
  <td class="copy-cell mono" data-c="${da[0]}">${da[0]||'-'}</td>
  <td class="copy-cell wrap" data-c="${da[1]||''}">${da[1]||'-'}</td>
- <td><button class="btn ghost" data-act="copylinha" title="Copiar esta linha (TSV)">📋</button></td>`;}
+ <td style="display:flex;gap:6px;align-items:center;justify-content:center">
+   <button class="btn ghost xs" data-act="multiplyRow" title="Multiplicar este ativo em N unidades (ex.: 1 ativo descrito como 47 unidades)">✕ N</button>
+   <button class="btn ghost xs" data-act="copylinha" title="Copiar esta linha (TSV)">📋</button>
+ </td>`;}
 function bindRowEvents(root){root.querySelectorAll('tr').forEach(tr=>{const i=+tr.dataset.i;
   tr.querySelectorAll('input.i,select.i').forEach(inp=>{
    inp.onchange=e=>{const f=e.target.dataset.f;let v=e.target.value;if(f==='contaIncorpIdx'||f==='vidaUtilMeses')v=parseInt(v)||-1;
@@ -973,7 +979,13 @@ function bindRowOne(tr,i){tr.querySelector('[data-act="copylinha"]')?.addEventLi
   const r=state.assetRows[i];if(!r)return;
   const ci=r.contaIncorpIdx>=0?CONTAS_INCORPORACAO[r.contaIncorpIdx]:['',''];const da=DEP_ACUM_MAP[r.contaIncorpIdx]||['',''];
   const linha=[r.patrimonio,r.desc,r.chave,fmtData(r.data),r.valorAjustado.toFixed(2),r.cnpjFornecedor,r.nNF,r.serie,ci[0],ci[1],r.vidaUtilMeses,r.NCM,DESP_DEP_COD,DESP_DEP_DESC,da[0],da[1]].join('\t');
-  navigator.clipboard.writeText(linha).then(()=>toast('Linha copiada ✔','ok'),()=>toast('Falha','err'));});}
+  navigator.clipboard.writeText(linha).then(()=>toast('Linha copiada ✔','ok'),()=>toast('Falha','err'));});
+ tr.querySelector('[data-act="multiplyRow"]')?.addEventListener('click',()=>{
+  const r=state.assetRows[i];if(!r)return;const ans=prompt(`Multiplicar ativo por quantas unidades?\n\nDescrição: ${r.desc.slice(0,80)}\nValor ajustado atual: R$ ${fmtBRL(r.valorAjustado)}\n\nDigite um número inteiro >= 2:`,String(2));if(ans===null)return;
+  const n=parseInt(ans);if(!n||n<2){toast('Quantidade inválida (use número inteiro >= 2)','err');return;}
+  const tot=r.valorAjustado;const unit=tot/n;const pieces=Array.from({length:n}).map(()=>+unit.toFixed(2));pieces[pieces.length-1]+=tot-pieces.reduce((a,b)=>a+b,0);
+  const newRows=pieces.map(v=>{const nr={...r,valorAjustado:+v.toFixed(2),patrimonio:r.patrimonio||''};return nr;});
+  state.assetRows.splice(i,1,...newRows);renderAssets();toast(`Ativo multiplicado em <b>${n}</b> unidade(s) (soma mantida R$ ${fmtBRL(tot)}) ✔`,'ok');});}
 
 // ===== AÇÕES =====
 document.getElementById('btnBulkPat').onclick=()=>{const p=document.getElementById('patPrefix').value.trim(),s=+document.getElementById('patStart').value||1,z=+document.getElementById('patZeros').value||0;let n=s;
