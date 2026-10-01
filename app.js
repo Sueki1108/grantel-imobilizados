@@ -848,9 +848,9 @@ function renderScreening(){const tb=document.querySelector('#screeningTable tbod
  <td>${fmtData(r.data)}</td>`;tb.appendChild(tr);});bindCopy(tb);}
 
 document.getElementById('btnExportScreening').onclick=()=>{if(!state.screeningRows.length)return;
- const h=['CHAVE DE ACESSO','DESCRIÇÃO DO ITEM','VALOR UNIT.','QUANTIDADE','UNIDADE','VALOR TOTAL','CFOP','DESCRIÇÃO CFOP','NCM','FORNECEDOR','CNPJ FORNECEDOR','Nº NOTA','SÉRIE','DATA EMISSÃO'];
- const d=state.screeningRows.map(r=>[r.chave,r.desc,+r.vUnit.toFixed(2),r.qCom,r.uCom,+r.vTotal.toFixed(2),r.CFOP,cfopDesc(r.CFOP),r.NCM,r.fornecedor,onlyDigits(r.cnpj),r.nNF,r.serie,r.data?fmtData(r.data):'']);
- const ws=XLSX.utils.aoa_to_sheet([h,...d]);ws['!cols']=[{wch:50},{wch:60},{wch:14},{wch:11},{wch:9},{wch:14},{wch:10},{wch:60},{wch:14},{wch:50},{wch:20},{wch:10},{wch:8},{wch:12}];
+ const h=['CHAVE DE ACESSO','FORNECEDOR','CNPJ FORNECEDOR','Nº NOTA','SÉRIE','DATA EMISSÃO','DESCRIÇÃO DO ITEM','VALOR UNIT.','QUANTIDADE','UNIDADE','VALOR TOTAL','CFOP','DESCRIÇÃO CFOP','NCM'];
+ const d=state.screeningRows.map(r=>[r.chave,r.fornecedor,onlyDigits(r.cnpj),r.nNF,r.serie,r.data?fmtData(r.data):'',r.desc,+r.vUnit.toFixed(2),r.qCom,r.uCom,+r.vTotal.toFixed(2),r.CFOP,cfopDesc(r.CFOP),r.NCM]);
+ const ws=XLSX.utils.aoa_to_sheet([h,...d]);ws['!cols']=[{wch:50},{wch:50},{wch:20},{wch:10},{wch:8},{wch:12},{wch:60},{wch:14},{wch:11},{wch:9},{wch:14},{wch:10},{wch:60},{wch:14}];
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Triagem_Imobilizados');
  XLSX.writeFile(wb,`Triagem_Imobilizados_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.xlsx`);toast('Planilha de Triagem baixada ✔','ok');};
 
