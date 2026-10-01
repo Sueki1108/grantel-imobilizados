@@ -260,6 +260,7 @@
     <button class="tab active" data-tab="screening">📥 Triagem</button>
     <button class="tab" data-tab="assets">🏷️ Ativos definitivos</button>
     <button class="tab" data-tab="ncm">📖 Tabela NCM</button>
+    <button class="tab" data-tab="settings">⚙️ Configurações</button>
   </div>
 
   <section id="tab-screening">
@@ -411,6 +412,45 @@
         <table><thead><tr><th data-k="prefix">Prefixo NCM</th><th data-k="desc">Descrição</th><th data-k="anos">Anos</th><th data-k="meses">Meses</th><th data-k="taxa">Taxa %</th></tr></thead>
         <tbody id="ncmTableBody"></tbody></table>
       </div>
+    </div>
+  </section>
+
+  <section id="tab-settings" class="hidden">
+    <div class="card">
+      <div class="hd">
+        <h2><span class="dot" style="background:#6366f1"></span>Regras personalizadas de Conta Incorporação</h2>
+        <span class="tag" style="background:#eef2ff;color:#3730a3">Prioridade máxima sobre NCM</span>
+      </div>
+      <p style="color:var(--text-2);font-size:13px;margin:0 0 16px">Cadastre palavras ou frases da <b>Descrição do Item</b> que devem puxar uma conta incorporação específica. Ex.: <code style="background:var(--bg-2);padding:2px 6px;border-radius:6px">impressora</code> → <b>Equipamentos de Informática</b>. Funciona <b>case insensitive</b> (não importa maiúsculas/minúsculas) e ordem cadastrada (primeira regra que bater na descrição ganha).</p>
+
+      <div style="display:flex;gap:10px;align-items:stretch;margin-bottom:14px;flex-wrap:wrap">
+        <label class="search" style="flex:1 1 360px;margin:0">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+          <input type="text" id="rulePalavra" placeholder="Palavra ou frase para procurar na descrição (ex.: impressora, cadeira, starlink)" />
+        </label>
+        <select id="ruleConta" style="padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);min-width:340px;font-size:13.5px;color:var(--text)">
+          <option value="-1">-- Selecione a Conta Incorporação --</option>
+        </select>
+        <button class="btn primary" id="ruleAdd">➕ Adicionar regra</button>
+      </div>
+
+      <div class="table-wrap">
+        <table><thead><tr><th style="width:54px;text-align:center">#</th><th>Palavra / Frase (match descrição)</th><th style="min-width:400px">Conta Incorporação</th><th style="width:140px;text-align:center">Ações</th></tr></thead>
+        <tbody id="rulesBody"></tbody></table>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap">
+        <button class="btn ghost" id="btnRuleExport">⬇️ Exportar regras (JSON)</button>
+        <label class="btn ghost" style="cursor:pointer">⬆️ Importar regras<input type="file" id="btnRuleImport" accept=".json,.txt" hidden /></label>
+        <button class="btn danger" id="btnRuleClear">🗑️ Apagar todas</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="hd">
+        <h2><span class="dot" style="background:#14b8a6"></span>Sobre o armazenamento</h2>
+        <span class="tag" style="background:#ecfdf5;color:#065f46">Local — 100% privado</span>
+      </div>
+      <p style="color:var(--text-2);font-size:13.5px;line-height:1.55">Suas regras ficam salvas no armazenamento local do seu navegador (<code style="background:var(--bg-2);padding:2px 6px;border-radius:6px">localStorage</code>) — <b>não</b> são enviadas para nenhum servidor. Troque de computador? Use os botões <b>Exportar / Importar</b> acima para levar as regras junto.</p>
     </div>
   </section>
 </div>

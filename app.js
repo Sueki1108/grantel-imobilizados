@@ -34,6 +34,11 @@ const NCM_CONTA_INC=[
  {prefix:'940360',ci:2},{prefix:'9403',ci:2},{prefix:'9401',ci:2},{prefix:'9402',ci:2},
  {prefix:'9405',ci:2},{prefix:'70',ci:11},{prefix:'80',ci:11},{prefix:'71',ci:11}];
 function contaIncorpNcm(n){const c=onlyDigits(n||'');let m=null;for(const r of NCM_CONTA_INC)if(c.startsWith(r.prefix)&&(m===null||r.prefix.length>m.prefix.length))m=r;return m?m.ci:2;}
+const LS_RULES='grantel_rules_conta_v1';
+function loadRules(){try{const raw=localStorage.getItem(LS_RULES);if(!raw)return[];const arr=JSON.parse(raw);return Array.isArray(arr)?arr.filter(r=>r&&typeof r.palavra==='string'&&typeof r.contaIncorpIdx==='number'):[];}catch{return[];}}
+function saveRules(r){localStorage.setItem(LS_RULES,JSON.stringify(r));}
+function contaIncorpRegra(desc=''){const d=String(desc||'').toUpperCase();const regras=loadRules();for(let i=0;i<regras.length;i++){const p=String(regras[i].palavra||'').toUpperCase().trim();if(!p)continue;if(d.includes(p))return regras[i].contaIncorpIdx;}return -1;}
+function resolveContaIncorp(desc='',ncm=''){const r=contaIncorpRegra(desc);if(r>=0)return r;return contaIncorpNcm(ncm);}
 const DESP_DEP_COD='4.1.05.01.0001', DESP_DEP_DESC='Depreciação';
 
 const CFOP_MAP={
@@ -806,7 +811,7 @@ function refreshFornDropdown(){const sel=document.getElementById('scrForn');if(!
  sel.value=cur;}
 
 function buildScreening(){const r=[];for(const n of state.notas)for(const it of n.itens){const vu=it.qCom>0?it.vAjustado/it.qCom:it.vAjustado;
- if(vu<1200)continue;r.push({chave:n.chave,desc:it.xProd,vUnit:vu,qCom:it.qCom,vTotal:it.vAjustado,CFOP:it.CFOP,NCM:it.NCM,fornecedor:n.emitXNome,cnpj:n.emitCNPJ,nNF:n.nNF,serie:n.serie,data:n.dhEmi,uCom:it.uCom,vidaUtilMeses:vidaUtilNcm(it.NCM),contaIncorpIdx:contaIncorpNcm(it.NCM)});}state.screeningRows=r;}
+ if(vu<1200)continue;r.push({chave:n.chave,desc:it.xProd,vUnit:vu,qCom:it.qCom,vTotal:it.vAjustado,CFOP:it.CFOP,NCM:it.NCM,fornecedor:n.emitXNome,cnpj:n.emitCNPJ,nNF:n.nNF,serie:n.serie,data:n.dhEmi,uCom:it.uCom,vidaUtilMeses:vidaUtilNcm(it.NCM),contaIncorpIdx:resolveContaIncorp(it.xProd,it.NCM)});}state.screeningRows=r;}
 
 function sortedScreening(){const k=state.ui.scrSort.k,dir=state.ui.scrSort.dir==='asc'?1:-1;
  const arr=state.screeningRows.map((r,i)=>({r,i}));
@@ -853,7 +858,7 @@ function renderScreening(){const tb=document.querySelector('#screeningTable tbod
     :`<b>Nenhum item corresponde aos filtros.</b>Tente limpar a busca ou remover filtros de fornecedor/NCM.`;
   tb.innerHTML=`<tr><td colspan="16"><div class="empty">${hint}</div></td></tr>`;return;}
  rows.forEach((r,idx)=>{const vu=(r.vidaUtilMeses>0)?r.vidaUtilMeses:vidaUtilNcm(r.NCM);
- if(!(r.contaIncorpIdx>=0))r.contaIncorpIdx=contaIncorpNcm(r.NCM);
+ if(!(r.contaIncorpIdx>=0))r.contaIncorpIdx=resolveContaIncorp(r.desc,r.NCM);
  r.vidaUtilMeses=vu;const tr=document.createElement('tr');tr.innerHTML=`
  <td class="num mono">${idx+1}</td>
  <td class="copy-cell mono" data-c="${r.chave}">${r.chave||'-'}</td>
@@ -872,12 +877,12 @@ function renderScreening(){const tb=document.querySelector('#screeningTable tbod
  tb.addEventListener('input',e=>{const inp=e.target.closest('input.i,select.i');if(!inp)return;const tr=inp.closest('tr');const rows2=filteredScreening();const idx2=[...tb.querySelectorAll('tbody tr')].indexOf(tr);if(idx2<0)return;const r=rows2[idx2];if(!r)return;const f=inp.dataset.f;let v=inp.value;if(f==='contaIncorpIdx'||f==='vidaUtilMeses')v=parseInt(v);
   r[f]=v;if(f==='contaIncorpIdx'||f==='vidaUtilMeses')toast('Atualizado ✔','ok');},{passive:true});
  tb.addEventListener('click',e=>{const btn=e.target.closest('[data-act="multiply"]');if(!btn)return;const tr=btn.closest('tr');const rows2=filteredScreening();const filteredIdx=[...tb.querySelectorAll('tr')].indexOf(tr)-1;const r=rows2[filteredIdx];if(!r)return;const ans=prompt(`Multiplicar item por quantas unidades?\n\nItem: ${r.desc.slice(0,80)}\nValor total atual: R$ ${fmtBRL(r.vTotal)}\n\nDigite um número inteiro >= 2:`,String(Math.max(2,Math.round(r.qCom)||2)));if(ans===null)return;const n=parseInt(ans);if(!n||n<2){toast('Quantidade inválida (use número inteiro >= 2)','err');return;}
- const realIdx=state.screeningRows.indexOf(r);if(realIdx<0)return;const tot=r.vTotal;const unit=tot/n;const pieces=Array.from({length:n}).map(()=>+unit.toFixed(2));pieces[pieces.length-1]+=tot-pieces.reduce((a,b)=>a+b,0);const newRows=pieces.map(v=>{const nr={...r,qCom:1,vTotal:+v.toFixed(2),vUnit:+v.toFixed(2),vidaUtilMeses:r.vidaUtilMeses>0?r.vidaUtilMeses:vidaUtilNcm(r.NCM),contaIncorpIdx:(r.contaIncorpIdx>=0)?r.contaIncorpIdx:contaIncorpNcm(r.NCM)};return nr;});state.screeningRows.splice(realIdx,1,...newRows);renderScreening();toast(`Item multiplicado em <b>${n}</b> unidade(s) (soma mantida R$ ${fmtBRL(tot)}) ✔`,'ok');},{once:true});}
+ const realIdx=state.screeningRows.indexOf(r);if(realIdx<0)return;const tot=r.vTotal;const unit=tot/n;const pieces=Array.from({length:n}).map(()=>+unit.toFixed(2));pieces[pieces.length-1]+=tot-pieces.reduce((a,b)=>a+b,0);const newRows=pieces.map(v=>{const nr={...r,qCom:1,vTotal:+v.toFixed(2),vUnit:+v.toFixed(2),vidaUtilMeses:r.vidaUtilMeses>0?r.vidaUtilMeses:vidaUtilNcm(r.NCM),contaIncorpIdx:(r.contaIncorpIdx>=0)?r.contaIncorpIdx:resolveContaIncorp(r.desc,r.NCM)};return nr;});state.screeningRows.splice(realIdx,1,...newRows);renderScreening();toast(`Item multiplicado em <b>${n}</b> unidade(s) (soma mantida R$ ${fmtBRL(tot)}) ✔`,'ok');},{once:true});}
 
 document.getElementById('btnExportScreening').onclick=()=>{if(!state.screeningRows.length)return;
  const h=['CHAVE DE ACESSO','FORNECEDOR','CNPJ FORNECEDOR','Nº NOTA','SÉRIE','DATA EMISSÃO','DESCRIÇÃO DO ITEM','VALOR UNIT.','QUANTIDADE','UNIDADE','VALOR TOTAL','CFOP','DESCRIÇÃO CFOP','NCM','CONTA INC. CÓD','CONTA INC. DESC','VIDA ÚTIL (MESES)'];
  const d=state.screeningRows.map(r=>{
-  const cii=(r.contaIncorpIdx>=0)?r.contaIncorpIdx:contaIncorpNcm(r.NCM);
+  const cii=(r.contaIncorpIdx>=0)?r.contaIncorpIdx:resolveContaIncorp(r.desc,r.NCM);
   const vida=(r.vidaUtilMeses>0)?r.vidaUtilMeses:vidaUtilNcm(r.NCM);
   const ci=cii>=0?CONTAS_INCORPORACAO[cii]:['',''];
   return[r.chave,r.fornecedor,onlyDigits(r.cnpj),r.nNF,r.serie,r.data?fmtData(r.data):'',r.desc,+r.vUnit.toFixed(2),r.qCom,r.uCom,+r.vTotal.toFixed(2),r.CFOP,cfopDesc(r.CFOP),r.NCM,ci[0],ci[1],vida];});
@@ -943,7 +948,7 @@ function procPlanilha(lin){if(!lin.length){toast('Planilha vazia','err');return;
   if(!sel){falt++;continue;}const q=sel.qCom,ips=[];
   if(deveDesdobrar(sel.uCom,q)){const vu=sel.vAjustado/q;for(let k=0;k<q;k++)ips.push(vu);ips[ips.length-1]+=sel.vAjustado-ips.reduce((a,b)=>a+b,0);}else ips.push(sel.vAjustado);
   const vid=(req.vidaUtil>0)?req.vidaUtil:vidaUtilNcm(sel.NCM);
-  const cii=((req.contaIncorpIdx!==undefined&&req.contaIncorpIdx>=0)?req.contaIncorpIdx:contaIncorpNcm(sel.NCM));
+  const cii=((req.contaIncorpIdx!==undefined&&req.contaIncorpIdx>=0)?req.contaIncorpIdx:resolveContaIncorp(sel.xProd,sel.NCM));
   for(const v of ips)rows.push({patrimonio:req.patrimonio||'',desc:sel.xProd,chave:nota.chave,data:nota.dhEmi,valorAjustado:v,cnpjFornecedor:nota.emitCNPJ,fornecedor:nota.emitXNome,CFOP:sel.CFOP,nNF:nota.nNF,serie:nota.serie||'',contaIncorpIdx:cii,vidaUtilMeses:vid,NCM:sel.NCM,_nc:nota.chave,_ni:sel.nItem});}
  state.assetRows=rows;refreshCIDropdown();renderAssets();
  document.getElementById('assetsCard').classList.toggle('hidden',!rows.length);
@@ -984,7 +989,7 @@ function renderAssets(){const tb=document.querySelector('#assetsTable tbody');if
  if(!rows.length){
   tb.innerHTML=`<tr><td colspan="17"><div class="empty"><b>Nenhum ativo corresponde aos filtros.</b>Limpe a busca ou remova o filtro de conta.</div></td></tr>`;return;}
  rows.forEach((r,i)=>{const tr=document.createElement('tr');tr.dataset.i=state.assetRows.indexOf(r);
- if(!(r.contaIncorpIdx>=0))r.contaIncorpIdx=contaIncorpNcm(r.NCM);
+ if(!(r.contaIncorpIdx>=0))r.contaIncorpIdx=resolveContaIncorp(r.desc,r.NCM);
  if(!r.vidaUtilMeses||isNaN(+r.vidaUtilMeses)||r.vidaUtilMeses<=0)r.vidaUtilMeses=vidaUtilNcm(r.NCM);
  buildRow(tr,r,+tr.dataset.i);tb.appendChild(tr);});bindRowEvents(tb);}
 function buildRow(tr,r,i){const cii=parseInt(r.contaIncorpIdx);const ci=(cii>=0?CONTAS_INCORPORACAO[cii]:null)||['',''];const da=DEP_ACUM_MAP[cii]||['',''];
@@ -1102,9 +1107,41 @@ function setupHelp(){document.getElementById('btnHelp').onclick=()=>document.get
  document.getElementById('btnCloseHelp').onclick=()=>document.getElementById('helpBackdrop').classList.remove('open');
  document.getElementById('helpBackdrop').onclick=e=>{if(e.target.id==='helpBackdrop')e.currentTarget.classList.remove('open');};}
 
+// ===== CONFIGURACOES: REGRAS CONTA INCORPORACAO =====
+function applyRuleContaScreening(){state.screeningRows.forEach(r=>{r.contaIncorpIdx=resolveContaIncorp(r.desc,r.NCM);});renderScreening();}
+function applyRuleContaAssets(){state.assetRows.forEach(r=>{r.contaIncorpIdx=resolveContaIncorp(r.desc,r.NCM);});renderAssets();}
+function renderRules(){const body=document.getElementById('rulesBody');const sel=document.getElementById('ruleConta');
+ if(sel){sel.innerHTML='<option value="-1">-- Selecione a Conta Incorporação --</option>'+CONTAS_INCORPORACAO.map((c,i)=>`<option value="${i}">${c[0]} — ${c[1]}</option>`).join('');sel.value='-1';}
+ if(!body)return;const r=loadRules();
+ if(!r.length){body.innerHTML=`<tr><td colspan="4"><div class="empty">Nenhuma regra cadastrada ainda.<br>Cadastre acima para personalizar as contas de incorporação por palavra da descrição.</div></td></tr>`;return;}
+ body.innerHTML=r.map((reg,i)=>{const c=CONTAS_INCORPORACAO[reg.contaIncorpIdx]||['---','---'];
+  return `<tr><td style="text-align:center;color:var(--muted)">${i+1}</td>
+ <td><span style="font-weight:600">${reg.palavra.replace(/[<>&]/g,'')}</span><br><small style="color:var(--muted)">case insensitive · match parcial na Descrição do Item</small></td>
+ <td><small style="font-family:var(--mono);color:var(--muted)">${c[0]}</small> <b style="margin-left:8px">${c[1]}</b></td>
+ <td style="text-align:center">
+  <div style="display:flex;gap:6px;justify-content:center;align-items:center">
+   <button class="btn ghost xs" data-ruleup="${i}" title="Subir prioridade">⬆️</button>
+   <button class="btn ghost xs" data-ruledn="${i}" title="Descer prioridade">⬇️</button>
+   <button class="btn danger xs" data-ruledel="${i}" title="Excluir regra">🗑️</button>
+  </div></td></tr>`;}).join('');
+ body.querySelectorAll('[data-ruledel]').forEach(b=>b.addEventListener('click',()=>{const idx=+b.dataset.ruledel;const r=loadRules();if(!confirm(`Excluir a regra "${r[idx]?.palavra}"?`))return;r.splice(idx,1);saveRules(r);renderRules();toast('Regra removida ✔','ok');applyRuleContaScreening();applyRuleContaAssets();}));
+ body.querySelectorAll('[data-ruleup]').forEach(b=>b.addEventListener('click',()=>{const idx=+b.dataset.ruleup;if(idx<=0)return;const r=loadRules();[r[idx-1],r[idx]]=[r[idx],r[idx-1]];saveRules(r);renderRules();applyRuleContaScreening();applyRuleContaAssets();}));
+ body.querySelectorAll('[data-ruledn]').forEach(b=>b.addEventListener('click',()=>{const idx=+b.dataset.ruledn;const r=loadRules();if(idx>=r.length-1)return;[r[idx+1],r[idx]]=[r[idx],r[idx+1]];saveRules(r);renderRules();applyRuleContaScreening();applyRuleContaAssets();}));}
+function setupSettings(){renderRules();
+ const addBtn=document.getElementById('ruleAdd');if(addBtn)addBtn.addEventListener('click',()=>{
+  const palavraInput=document.getElementById('rulePalavra');const conta=document.getElementById('ruleConta');
+  const p=(palavraInput?.value||'').trim();if(!p){toast('Informe uma palavra ou frase','warn');return;}
+  const ci=parseInt(conta?.value??'-1');if(!(ci>=0)){toast('Selecione uma conta de incorporação','warn');return;}
+  const r=loadRules();r.push({palavra:p,contaIncorpIdx:ci});saveRules(r);renderRules();
+  palavraInput.value='';conta.value='-1';toast(`Regra adicionada: <b>${p}</b> → ${CONTAS_INCORPORACAO[ci][1]} ✔`,'ok');applyRuleContaScreening();applyRuleContaAssets();
+ });
+ const exp=document.getElementById('btnRuleExport');if(exp)exp.onclick=()=>{const r=loadRules();if(!r.length){toast('Nenhuma regra para exportar','warn');return;}const blob=new Blob([JSON.stringify(r,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`regras_conta_imobilizados_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href);toast('Arquivo de regras baixado ✔','ok');};
+ const imp=document.getElementById('btnRuleImport');if(imp)imp.onchange=e=>{const f=e.target.files?.[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const arr=JSON.parse(rd.result);if(!Array.isArray(arr))throw new Error('formato');const ok=arr.filter(x=>x&&typeof x.palavra==='string'&&typeof x.contaIncorpIdx==='number');if(!ok.length){toast('Arquivo não tem regras válidas','err');return;}saveRules(ok);renderRules();toast(`Importadas <b>${ok.length}</b> regra(s) ✔`,'ok');applyRuleContaScreening();applyRuleContaAssets();}catch(err){toast('Arquivo inválido','err');}};rd.readAsText(f);e.target.value='';};
+ const clr=document.getElementById('btnRuleClear');if(clr)clr.onclick=()=>{if(!confirm('Apagar TODAS as regras de conta incorporação? Esta ação NÃO pode ser desfeita.'))return;saveRules([]);renderRules();toast('Todas as regras foram apagadas.','warn');applyRuleContaScreening();applyRuleContaAssets();};}
+
 // ===== INICIAR =====
 document.addEventListener('DOMContentLoaded',()=>{
- setupTabs();setupXml();setupSheet();setupTheme();setupHelp();
+ setupTabs();setupXml();setupSheet();setupTheme();setupHelp();setupSettings();
  document.getElementById('ncmSearch')?.addEventListener('input',renderNcmTable);
  document.getElementById('ncmTableBody') && renderNcmTable();
  renderScreening();});
