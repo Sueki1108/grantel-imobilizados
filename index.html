@@ -3,157 +3,399 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Gestão de Imobilizados — Extrator NF-e</title>
+<title>Grantel — Gestão de Imobilizados</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
-  :root { --primary:#1e40af; --primary-dark:#1e3a8a; --bg:#f1f5f9; --card:#ffffff;
-    --border:#e2e8f0; --text:#0f172a; --muted:#64748b; --green:#16a34a; --red:#dc2626; }
-  * { box-sizing: border-box; margin:0; padding:0; }
-  body { font-family: 'Segoe UI', Roboto, sans-serif; background:var(--bg); color:var(--text); font-size:14px; }
-  header { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:#fff; padding:20px 30px; }
-  header h1 { font-size:22px; margin-bottom:4px; }
-  header p { opacity:.85; font-size:13px; }
-  main { padding:24px 30px; max-width:100%; overflow-x:auto; }
-  .tabs { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
-  .tab { padding:10px 20px; background:#cbd5e1; border:none; border-radius:8px 8px 0 0; cursor:pointer; font-weight:600; color:#334155; }
-  .tab.active { background:var(--card); color:var(--primary); }
-  .card { background:var(--card); border-radius:12px; padding:22px; box-shadow:0 1px 3px rgba(0,0,0,.06); margin-bottom:20px; border:1px solid var(--border); }
-  .card h2 { font-size:16px; margin-bottom:14px; color:var(--primary); }
-  .upload-area { border:2px dashed #94a3b8; border-radius:10px; padding:30px; text-align:center; cursor:pointer; transition:.2s; background:#f8fafc; }
-  .upload-area:hover { border-color:var(--primary); background:#eff6ff; }
-  .upload-area.dragover { border-color:var(--green); background:#f0fdf4; }
-  .upload-area p { color:var(--muted); margin-top:6px; }
-  .upload-area input[type=file] { display:none; }
-  textarea.paste-area { width:100%; min-height:90px; padding:10px; border:1px solid var(--border); border-radius:8px; margin-top:10px; font-family:monospace; font-size:11px; resize:vertical; }
-  .row { display:flex; gap:16px; flex-wrap:wrap; }
-  .col { flex:1; min-width:300px; }
-  button.btn { padding:10px 18px; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; transition:.15s; display:inline-flex; align-items:center; gap:6px; }
-  button.primary { background:var(--primary); color:#fff; } button.primary:hover { background:var(--primary-dark); }
-  button.success { background:var(--green); color:#fff; } button.success:hover { background:#15803d; }
-  button.secondary { background:#e2e8f0; color:#0f172a; } button.secondary:hover { background:#cbd5e1; }
-  button:disabled { opacity:.45; cursor:not-allowed; }
-  .btn-row { display:flex; gap:10px; flex-wrap:wrap; margin:12px 0; }
-  .stats { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
-  .stat { background:#f8fafc; padding:10px 16px; border-radius:8px; border:1px solid var(--border); }
-  .stat b { display:block; font-size:18px; color:var(--primary); }
-  .stat span { font-size:11px; color:var(--muted); }
-  table { width:100%; border-collapse:collapse; font-size:12.5px; }
-  th, td { padding:8px 10px; border:1px solid var(--border); text-align:left; vertical-align:middle; white-space:nowrap; }
-  th { background:#f1f5f9; position:sticky; top:0; z-index:2; font-weight:700; color:#334155; }
-  tr:hover td { background:#f8fafc; }
-  td.copy-cell { cursor:pointer; user-select:none; }
-  td.copy-cell:hover { background:#dbeafe !important; }
-  td.copy-cell.copied { background:#bbf7d0 !important; transition:.3s; }
-  td.num { text-align:right; font-variant-numeric:tabular-nums; }
-  .wrap-cell { white-space:normal; max-width:380px; line-height:1.35; }
-  input.inline, select.inline { width:100%; padding:5px 7px; border:1px solid var(--border); border-radius:5px; font-size:12.5px; }
-  input.inline:focus, select.inline:focus { border-color:var(--primary); outline:2px solid #bfdbfe; }
-  .table-wrap { max-height:62vh; overflow:auto; border:1px solid var(--border); border-radius:8px; }
-  .toast { position:fixed; bottom:24px; right:24px; padding:12px 20px; border-radius:8px; color:#fff; font-weight:600; z-index:9999; opacity:0; transform:translateY(20px); transition:.25s; box-shadow:0 6px 16px rgba(0,0,0,.15); }
-  .toast.show { opacity:1; transform:translateY(0); }
-  .toast.ok { background:var(--green); } .toast.err { background:var(--red); } .toast.info { background:var(--primary); }
-  .hidden { display:none !important; }
-  .file-list { margin-top:10px; display:flex; flex-wrap:wrap; gap:6px; }
-  .file-tag { background:#e0f2fe; color:#075985; padding:3px 10px; border-radius:14px; font-size:11px; }
-  .toolbar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px; }
-  .patrimonio-bulk { display:flex; gap:8px; align-items:center; flex-wrap:wrap; background:#f0f9ff; padding:10px 14px; border-radius:8px; border:1px solid #bae6fd; margin-bottom:12px; }
-  .patrimonio-bulk input { padding:5px 8px; border:1px solid var(--border); border-radius:5px; font-size:12.5px; width:130px; }
+  :root {
+    --accent:#2563eb;
+    --accent-hover:#1d4ed8;
+    --accent-soft:#eff6ff;
+    --bg:#f8fafc;
+    --bg-2:#ffffff;
+    --border:#e5e7eb;
+    --border-2:#f1f5f9;
+    --text:#0f172a;
+    --text-2:#475569;
+    --muted:#94a3b8;
+    --success:#16a34a;
+    --success-soft:#ecfdf5;
+    --danger:#dc2626;
+    --danger-soft:#fef2f2;
+    --warning:#ca8a04;
+    --warning-soft:#fffbeb;
+    --radius:14px;
+    --radius-sm:10px;
+    --shadow-sm:0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.04);
+    --shadow-md:0 4px 14px -4px rgba(15,23,42,.08), 0 2px 4px rgba(15,23,42,.04);
+  }
+  [data-theme="dark"]{
+    --accent:#60a5fa;
+    --accent-hover:#93c5fd;
+    --accent-soft:#1e293b;
+    --bg:#0b1220;
+    --bg-2:#111827;
+    --border:#1f2937;
+    --border-2:#0f172a;
+    --text:#f1f5f9;
+    --text-2:#cbd5e1;
+    --muted:#64748b;
+    --success-soft:#052e22;
+    --danger-soft:#3b0a0a;
+    --warning-soft:#2e2100;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.35);
+    --shadow-md:0 6px 22px -6px rgba(0,0,0,.55);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  }
+  .app{max-width:1360px;margin:0 auto;padding:28px 32px 80px}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand .logo{
+    width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;
+    display:grid;place-items:center;font-size:20px;font-weight:700;box-shadow:var(--shadow-md);
+  }
+  .brand h1{font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--text)}
+  .brand p{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .top-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .icon-btn{
+    height:40px;padding:0 14px;border:1px solid var(--border);background:var(--bg-2);color:var(--text-2);
+    border-radius:var(--radius-sm);cursor:pointer;font-size:13px;font-weight:500;
+    display:inline-flex;align-items:center;gap:6px;transition:.15s;box-shadow:var(--shadow-sm);
+  }
+  .icon-btn:hover{background:var(--border-2);color:var(--text);border-color:var(--text-2)}
+  .tabs{display:flex;gap:6px;padding:6px;background:var(--bg-2);border:1px solid var(--border);
+    border-radius:999px;box-shadow:var(--shadow-sm);width:fit-content;margin-bottom:22px;flex-wrap:wrap}
+  .tab{
+    padding:8px 18px;border:none;background:transparent;color:var(--text-2);border-radius:999px;
+    cursor:pointer;font-size:13px;font-weight:600;transition:.15s;display:inline-flex;align-items:center;gap:6px
+  }
+  .tab:hover{color:var(--text)}
+  .tab.active{background:var(--accent);color:#fff;box-shadow:var(--shadow-sm)}
+  .card{
+    background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow-sm);margin-bottom:20px;
+  }
+  .card .hd{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+  .card .hd h2{font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--text);display:inline-flex;align-items:center;gap:8px}
+  .card .hd h2 .dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+  .btn{
+    padding:9px 16px;border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;font-weight:600;
+    transition:.15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+    border:1px solid transparent;
+  }
+  .btn.primary{background:var(--accent);color:#fff;box-shadow:var(--shadow-sm)}
+  .btn.primary:hover{background:var(--accent-hover)}
+  .btn.success{background:var(--success);color:#fff;box-shadow:var(--shadow-sm)}
+  .btn.success:hover{filter:brightness(.96)}
+  .btn.ghost{background:transparent;color:var(--text-2);border-color:var(--border)}
+  .btn.ghost:hover{background:var(--border-2);color:var(--text)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn-group{display:flex;gap:8px;flex-wrap:wrap}
+
+  .upload{
+    position:relative;border:1.5px dashed var(--border);border-radius:var(--radius);
+    padding:34px 20px;text-align:center;background:repeating-linear-gradient(45deg,transparent,transparent 12px,var(--border-2) 12px,var(--border-2) 13px);
+    cursor:pointer;transition:.18s;
+  }
+  .upload:hover{border-color:var(--accent);background:var(--accent-soft)}
+  .upload.dragover{border-color:var(--success);background:var(--success-soft);transform:scale(1.005)}
+  .upload .ic{font-size:34px;margin-bottom:8px}
+  .upload strong{font-size:14.5px;color:var(--text);display:block;margin-bottom:4px}
+  .upload span{font-size:12.5px;color:var(--muted)}
+  .upload input{display:none}
+  .files{margin-top:14px;display:flex;flex-wrap:wrap;gap:6px}
+  .file-chip{
+    display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;
+    background:var(--accent-soft);color:var(--accent);font-size:11.5px;font-weight:600;border:1px solid transparent;
+  }
+
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+  .stat{
+    background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;position:relative;overflow:hidden
+  }
+  .stat::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);opacity:.8}
+  .stat small{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+  .stat b{display:block;font-size:22px;font-weight:700;margin-top:4px;color:var(--text);letter-spacing:-.02em}
+
+  .toolbar-grid{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;margin-bottom:12px}
+  @media (max-width:680px){.toolbar-grid{grid-template-columns:1fr}}
+  .search{
+    display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);
+    background:var(--bg);transition:.15s;
+  }
+  .search:focus-within{border-color:var(--accent);background:var(--bg-2);box-shadow:0 0 0 3px var(--accent-soft)}
+  .search svg{width:16px;height:16px;color:var(--muted);flex-shrink:0}
+  .search input{border:none;background:transparent;outline:none;font-family:inherit;font-size:13px;color:var(--text);width:100%}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;
+    background:var(--bg);border:1px solid var(--border);font-size:12px;color:var(--text-2);cursor:pointer;font-weight:500;
+  }
+  .chip select,.chip input{border:none;background:transparent;outline:none;font-family:inherit;font-size:12px;color:var(--text);max-width:220px}
+  .chip input{width:160px}
+  .chip b{font-weight:600;color:var(--accent)}
+
+  .table-wrap{
+    max-height:66vh;overflow:auto;border:1px solid var(--border);border-radius:var(--radius-sm);
+    background:var(--bg-2);
+  }
+  table{width:100%;border-collapse:collapse;font-size:12.8px;min-width:980px}
+  th,td{padding:10px 12px;border-bottom:1px solid var(--border-2);text-align:left;vertical-align:middle}
+  thead th{
+    position:sticky;top:0;z-index:3;background:var(--bg);color:var(--text-2);font-weight:600;font-size:11.5px;
+    text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);user-select:none;cursor:pointer;
+    backdrop-filter:saturate(180%) blur(6px);
+  }
+  thead th.sort-asc::after{content:' ↑';color:var(--accent)}
+  thead th.sort-desc::after{content:' ↓';color:var(--accent)}
+  tbody tr:hover td{background:var(--border-2)}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  td.mono{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:12px;color:var(--text-2)}
+  td.copy-cell{cursor:pointer;transition:.12s}
+  td.copy-cell:hover{background:var(--accent-soft) !important;color:var(--accent)}
+  td.copy-cell.copied{background:var(--success-soft) !important;animation:none}
+  td.wrap{white-space:normal;max-width:360px;line-height:1.35}
+  input.i,select.i{
+    width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:12.5px;
+    background:var(--bg);color:var(--text);transition:.12s;
+  }
+  input.i:focus,select.i:focus{border-color:var(--accent);outline:2px solid var(--accent-soft)}
+
+  .bulk{
+    display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:14px 16px;
+    background:var(--accent-soft);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:14px;
+  }
+  .bulk strong{font-size:12.5px;color:var(--accent);text-transform:uppercase;letter-spacing:.04em}
+  .bulk input{padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text);font-size:12.5px;width:140px;font-family:inherit}
+  .bulk .hint{font-size:11.5px;color:var(--muted)}
+
+  .toast{
+    position:fixed;bottom:26px;right:26px;padding:13px 18px;border-radius:12px;color:#fff;font-weight:600;font-size:13px;
+    z-index:9999;opacity:0;transform:translateY(16px) scale(.98);transition:.2s cubic-bezier(.2,.8,.2,1);
+    box-shadow:var(--shadow-md);display:inline-flex;align-items:center;gap:8px;max-width:min(520px,90vw)
+  }
+  .toast.show{opacity:1;transform:translateY(0) scale(1)}
+  .toast.ok{background:var(--success)}
+  .toast.err{background:var(--danger)}
+  .toast.info{background:var(--accent)}
+  .toast.warn{background:var(--warning)}
+
+  .hidden{display:none !important}
+  .tag{
+    display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;
+    background:var(--accent-soft);color:var(--accent);
+  }
+
+  .empty{padding:40px 20px;text-align:center;color:var(--muted);font-size:13px}
+  .empty b{display:block;color:var(--text-2);margin-bottom:4px;font-size:14px;font-weight:600}
+
+  /* NCM table special */
+  #tab-ncm .table-wrap table{min-width:680px}
+
+  /* Modal help */
+  .backdrop{position:fixed;inset:0;background:rgba(15,23,42,.48);backdrop-filter:blur(2px);z-index:9998;display:none;place-items:center;padding:20px}
+  .backdrop.open{display:grid}
+  .modal{background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);max-width:560px;width:100%;padding:24px;box-shadow:var(--shadow-md)}
+  .modal h3{font-size:16px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .modal ol{padding-left:20px;color:var(--text-2);font-size:13px}
+  .modal ol li{margin:8px 0}
+  .modal .foot{margin-top:16px;display:flex;justify-content:flex-end}
 </style>
 </head>
 <body>
-<header>
-  <h1>🏢 Gestão de Imobilizados — Extrator de NF-e</h1>
-  <p>Carregue XMLs → trie itens → exporte planilha final com contas contábeis</p>
-</header>
-<main>
-  <div class="tabs">
-    <button class="tab active" data-tab="screening">1 — Triagem (XML → Planilha ≥ R$1.200)</button>
-    <button class="tab" data-tab="assets">2 — Ativos Definitivos (Planilha → Tabela Final)</button>
-    <button class="tab" data-tab="ncm">3 — Tabela NCM (Vida Útil)</button>
+<div class="app">
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo">G</div>
+      <div>
+        <h1>Gestão de Imobilizados</h1>
+        <p>Extração de NF-e · Triagem · Planilha contábil definitiva</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" id="btnSample" title="Carregar dados de exemplo">🧪 Exemplos</button>
+      <button class="icon-btn" id="btnHelp" title="Como usar?">❓ Ajuda</button>
+      <button class="icon-btn" id="btnTheme" title="Alternar tema">🌗 Tema</button>
+      <button class="icon-btn" id="btnClear" title="Apagar todos os dados carregados">🗑️ Limpar</button>
+    </div>
   </div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab active" data-tab="screening">📥 Triagem</button>
+    <button class="tab" data-tab="assets">🏷️ Ativos definitivos</button>
+    <button class="tab" data-tab="ncm">📖 Tabela NCM</button>
+  </div>
+
   <section id="tab-screening">
     <div class="card">
-      <h2>📥 Carregar XMLs de NF-e</h2>
-      <div class="row"><div class="col">
-        <label class="upload-area" id="xmlDrop">
-          <strong>📁 Arraste arquivos XML aqui ou clique para selecionar</strong>
-          <p>.xml e .txt (múltiplas notas por arquivo suportado) — sem limite</p>
-          <input type="file" id="xmlFile" multiple accept=".xml,.txt" />
-        </label>
-        <textarea class="paste-area" id="xmlPaste" placeholder="Ou cole o texto XML diretamente aqui (uma ou várias NFe)..."></textarea>
-        <div class="btn-row">
-          <button class="btn primary" id="btnParsePaste">🔍 Processar texto colado</button>
-          <button class="btn secondary" id="btnClearXml">🗑️ Limpar tudo</button>
-          <button class="btn secondary" id="btnSample">🧪 Carregar exemplos</button>
-        </div>
-        <div class="file-list" id="xmlFileList"></div>
-      </div></div>
-    </div>
-    <div class="card">
-      <div class="toolbar">
-        <h2 style="margin:0">📋 Itens para Triagem (valor unitário ≥ R$ 1.200,00)</h2>
-        <button class="btn success" id="btnExportScreening" disabled>⬇️ Baixar Planilha de Triagem</button>
+      <div class="hd">
+        <h2><span class="dot"></span>Carregar XMLs de NF-e</h2>
+        <span class="tag">.xml · .txt · múltiplas notas por arquivo</span>
       </div>
+      <label class="upload" id="xmlDrop">
+        <div class="ic">📂</div>
+        <strong>Arraste os arquivos aqui ou clique para selecionar</strong>
+        <span>Suporta vários arquivos de uma vez · sem limite de notas</span>
+        <input type="file" id="xmlFile" multiple accept=".xml,.txt" />
+      </label>
+      <div class="files" id="xmlFileList"></div>
+    </div>
+
+    <div class="card">
+      <div class="hd">
+        <h2><span class="dot" style="background:var(--success)"></span>Itens para Triagem <span style="font-weight:400;color:var(--muted);font-size:12.5px">(valor unitário ≥ R$ 1.200,00)</span></h2>
+        <button class="btn success" id="btnExportScreening" disabled>⬇️ Baixar planilha</button>
+      </div>
+
       <div class="stats" id="screeningStats"></div>
+
+      <div class="toolbar-grid">
+        <label class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" id="scrSearch" placeholder="Buscar por descrição, NCM, fornecedor, NF, chave..." />
+        </label>
+        <div class="btn-group">
+          <span class="chip"><b>Filtro:</b></span>
+          <span class="chip">Fornecedor
+            <select id="scrForn"><option value="">Todos</option></select>
+          </span>
+          <span class="chip">NCM prefixo
+            <input type="text" id="scrNcm" placeholder="ex.: 8471" />
+          </span>
+        </div>
+      </div>
+
       <div class="table-wrap">
         <table id="screeningTable"><thead><tr>
-          <th>#</th><th>CHAVE DE ACESSO</th><th>DESCRIÇÃO</th><th>V.UNIT</th><th>QTD</th>
-          <th>V.TOTAL</th><th>CFOP</th><th>NCM</th><th>FORNECEDOR</th><th>CNPJ</th><th>NF</th><th>SÉRIE</th><th>DATA</th>
+          <th data-k="i">#</th>
+          <th data-k="chave">Chave de acesso</th>
+          <th data-k="desc">Descrição</th>
+          <th data-k="vUnit">V. unit.</th>
+          <th data-k="qCom">Qtd</th>
+          <th data-k="vTotal">V. total</th>
+          <th data-k="CFOP">CFOP</th>
+          <th data-k="NCM">NCM</th>
+          <th data-k="fornecedor">Fornecedor</th>
+          <th data-k="cnpj">CNPJ</th>
+          <th data-k="nNF">NF</th>
+          <th data-k="serie">Série</th>
+          <th data-k="data">Data</th>
         </tr></thead><tbody></tbody></table>
       </div>
     </div>
   </section>
+
   <section id="tab-assets" class="hidden">
     <div class="card">
-      <h2>📤 Carregar Planilha de Chaves / Itens Filtrados</h2>
-      <div class="row"><div class="col">
-        <label class="upload-area" id="sheetDrop">
-          <strong>📊 Arraste a planilha aqui (.xlsx / .xls / .csv)</strong>
-          <p>Use a planilha baixada na Etapa 1, mantendo apenas os itens para imobilizar.</p>
-          <input type="file" id="sheetFile" accept=".xlsx,.xls,.csv" />
-        </label>
-        <div class="file-list" id="sheetFileList"></div>
-      </div></div>
+      <div class="hd">
+        <h2><span class="dot" style="background:#a855f7"></span>Carregar planilha de triagem filtrada</h2>
+        <span class="tag" style="background:#faf5ff;color:#7e22ce">.xlsx · .xls · .csv</span>
+      </div>
+      <label class="upload" id="sheetDrop">
+        <div class="ic">📊</div>
+        <strong>Arraste a planilha aqui ou clique para selecionar</strong>
+        <span>Use a planilha baixada na Triagem (mantenha apenas os itens que serão imobilizados)</span>
+        <input type="file" id="sheetFile" accept=".xlsx,.xls,.csv" />
+      </label>
+      <div class="files" id="sheetFileList"></div>
     </div>
-    <div class="card" id="assetsCard" style="display:none">
-      <div class="toolbar">
-        <h2 style="margin:0">🏷️ Tabela Definitiva de Imobilizados</h2>
-        <div class="btn-row">
-          <button class="btn success" id="btnExportFinal">⬇️ Exportar Excel Final</button>
-          <button class="btn secondary" id="btnCopyAll">📋 Copiar Toda Tabela</button>
+
+    <div class="card hidden" id="assetsCard">
+      <div class="hd">
+        <h2><span class="dot" style="background:var(--success)"></span>Tabela definitiva de imobilizados</h2>
+        <div class="btn-group">
+          <button class="btn ghost" id="btnCopyAll">📋 Copiar tudo</button>
+          <button class="btn success" id="btnExportFinal">⬇️ Excel final</button>
         </div>
       </div>
-      <div class="patrimonio-bulk">
-        <strong>🔢 Preenchimento em lote:</strong>
-        Prefixo <input type="text" id="patPrefix" placeholder="GRANT" />
-        Nº inicial <input type="number" id="patStart" value="1" />
+
+      <div class="bulk">
+        <strong>🔢 Lote:</strong>
+        Prefixo <input type="text" id="patPrefix" placeholder="ex.: GRANT" />
+        Nº inicial <input type="number" id="patStart" value="1" min="0" />
         Zeros <input type="number" id="patZeros" value="6" min="0" max="12" />
         <button class="btn primary" id="btnBulkPat">Aplicar nos vazios</button>
-        <span style="color:var(--muted);font-size:12px">Ex.: GRANT000001, GRANT000002...</span>
+        <span class="hint">Ex.: GRANT000001, GRANT000002…</span>
       </div>
+
       <div class="stats" id="assetsStats"></div>
+
+      <div class="toolbar-grid">
+        <label class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" id="astSearch" placeholder="Buscar na tabela definitiva..." />
+        </label>
+        <div class="btn-group">
+          <span class="chip">Conta incorp.
+            <select id="astCI"><option value="">Todas</option></select>
+          </span>
+          <span class="chip">Ordenar
+            <select id="astSort">
+              <option value="">Padrão (como importado)</option>
+              <option value="patrimonio">Patrimônio</option>
+              <option value="valorAjustado-desc">Valor (maior → menor)</option>
+              <option value="valorAjustado-asc">Valor (menor → maior)</option>
+              <option value="vidaUtilMeses-desc">Vida útil (maior)</option>
+              <option value="data-desc">Data (mais recente)</option>
+            </select>
+          </span>
+        </div>
+      </div>
+
       <div class="table-wrap">
         <table id="assetsTable"><thead><tr>
-          <th>1 PATRIMÔNIO</th><th>2 DESCRIÇÃO</th><th>3 CHAVE</th><th>4 DATA</th><th>5 V.AJUSTADO</th>
-          <th>6 CNPJ</th><th>7 Nº NF</th><th>8 SÉRIE</th>
-          <th>9 CONTA INC. CÓD</th><th>10 CONTA INC. DESC</th><th>11 VIDA ÚTIL</th>
-          <th>12 NCM</th><th>13 DEP DÉB CÓD</th><th>14 DEP DÉB DESC</th>
-          <th>15 DEP.ACUM CÓD</th><th>16 DEP.ACUM DESC</th><th>⚙️</th>
+          <th>Patrimônio</th><th>Descrição</th><th>Chave</th><th>Data</th><th>V. ajustado</th>
+          <th>CNPJ</th><th>NF</th><th>Série</th>
+          <th>Conta Inc. (cód)</th><th>Conta Inc. (desc)</th><th>Vida útil</th>
+          <th>NCM</th><th>Dep. débito (cód)</th><th>Dep. débito (desc)</th>
+          <th>Dep. acum. (cód)</th><th>Dep. acum. (desc)</th><th style="cursor:default">Ações</th>
         </tr></thead><tbody></tbody></table>
       </div>
     </div>
   </section>
+
   <section id="tab-ncm" class="hidden">
     <div class="card">
-      <h2>📖 Tabela NCM — Vida Útil (Referência IN RF)</h2>
-      <p style="color:var(--muted);margin-bottom:12px">A vida útil é definida automaticamente pelo prefixo do NCM. Ajustes manuais podem ser feitos diretamente na tabela de ativos (coluna 11).</p>
+      <div class="hd">
+        <h2><span class="dot" style="background:#f59e0b"></span>Tabela NCM — Vida útil (IN RF)</h2>
+        <span class="tag" style="background:#fffbeb;color:#92400e">Editável direto na tabela de ativos</span>
+      </div>
+      <p style="color:var(--text-2);font-size:13px;margin-bottom:14px">A vida útil é definida automaticamente pelo prefixo mais longo do NCM. Se não houver match, assume padrão de <b>120 meses</b> (10 anos).</p>
+      <div class="toolbar-grid">
+        <label class="search" style="max-width:520px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" id="ncmSearch" placeholder="Filtrar NCM / descrição..." />
+        </label>
+        <div></div>
+      </div>
       <div class="table-wrap">
-        <table><thead><tr><th>NCM (prefixo)</th><th>Descrição</th><th>Anos</th><th>Meses</th><th>Taxa</th></tr></thead>
+        <table><thead><tr><th data-k="prefix">Prefixo NCM</th><th data-k="desc">Descrição</th><th data-k="anos">Anos</th><th data-k="meses">Meses</th><th data-k="taxa">Taxa %</th></tr></thead>
         <tbody id="ncmTableBody"></tbody></table>
       </div>
     </div>
   </section>
-</main>
+</div>
+
+<div class="backdrop" id="helpBackdrop"><div class="modal" role="dialog" aria-modal="true">
+  <h3>📘 Como usar — passo a passo</h3>
+  <ol>
+    <li><b>Triagem:</b> arraste seus XMLs (1 arquivo com várias NFe concatenadas também funciona). Os itens com valor unitário ≥ R$ 1.200 aparecem na tabela.</li>
+    <li>Clique em <b>⬇️ Baixar planilha</b>, abra no Excel e <b>remova as linhas</b> dos itens que <b>não</b> serão imobilizados. Salve.</li>
+    <li><b>Ativos definitivos:</b> arraste a planilha filtrada. A tabela aparece preenchida com contas, vidas úteis e mapeamento.</li>
+    <li>Preencha <b>Patrimônios em lote</b>, ajuste manualmente Conta Incorporação ou Vida Útil se preciso.</li>
+    <li>Clique em <b>⬇️ Excel final</b> para baixar a planilha com as 16 colunas prontas para importação contábil.</li>
+  </ol>
+  <div class="foot"><button class="btn primary" id="btnCloseHelp">Entendido ✓</button></div>
+</div></div>
+
 <div class="toast" id="toast"></div>
 <script src="./app.js"></script>
 </body>
