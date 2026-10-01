@@ -154,10 +154,18 @@ function setupTabs(){document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>
 function setupXml(){const drop=document.getElementById('xmlDrop'),inp=document.getElementById('xmlFile'),list=document.getElementById('xmlFileList');
  function renderFiles(arr){
   if(!arr.length){list.innerHTML='';return;}
-  const sum=document.createElement('span');sum.className='file-summary';sum.innerHTML=`📎 <b>${arr.length}</b> arquivo(s) carregado(s)`;list.appendChild(sum);
-  const MAX=5;const show=arr.slice(0,MAX);const extra=arr.length-MAX;
-  show.forEach(f=>{const t=document.createElement('span');t.className='file-chip';t.title=f.name;t.innerHTML='📄 '+f.name;list.appendChild(t);});
-  if(extra>0){const t=document.createElement('span');t.className='file-chip';t.style.background='var(--warning-soft)';t.style.color='var(--warning)';t.innerHTML=`+${extra} mais`;list.appendChild(t);}
+  const sum=document.createElement('span');sum.className='file-summary';
+  const totSize=arr.reduce((s,f)=>s+(f.size||0),0);
+  const sizeStr=totSize>(1024*1024)?(totSize/(1024*1024)).toFixed(1)+' MB':totSize>1024?(totSize/1024).toFixed(0)+' KB':totSize+' B';
+  sum.innerHTML=`📎 <b>${arr.length}</b> arquivo(s) · ${sizeStr}`;list.appendChild(sum);
+  if(arr.length<=10){
+   arr.forEach(f=>{const t=document.createElement('span');t.className='file-chip';t.title=f.name;
+    const n=f.name;const nm=n.length>40?(n.slice(0,18)+'…'+n.slice(-20)):n;
+    t.innerHTML='📄 '+nm;list.appendChild(t);});
+  } else {
+   const t=document.createElement('span');t.className='file-chip';t.title='Exibindo apenas o total; todos foram processados.';
+   t.style.background='var(--accent-soft)';t.style.color='var(--accent)';
+   t.innerHTML='ℹ️ chips ocultos para não poluir (clique em 🗑️ Limpar para reiniciar)';list.appendChild(t);}
  }
  function procFiles(fs){const arr=Array.from(fs).filter(f=>/\.(xml|txt)$/i.test(f.name));if(!arr.length){toast('Nenhum XML/TXT válido','err');return;}
   list.innerHTML='';renderFiles(arr);
