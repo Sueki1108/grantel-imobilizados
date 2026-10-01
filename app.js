@@ -86,7 +86,13 @@ const fmtCnpj=s=>{const d=onlyDigits(s).padStart(14,'0');return `${d.slice(0,2)}
 function vidaUtilNcm(n){const c=onlyDigits(n);let m=null;for(const r of NCM_VIDA)if(c.startsWith(r.prefix)&&(m===null||r.prefix.length>m.prefix.length))m=r;return m?m.anos*12:120;}
 
 // ===== PARSE XML =====
-function splitBlocks(t){const b=[];const re=/<\s*(nfeProc|NFe)\b/gi;let m,s=[];while((m=re.exec(t))!==null)s.push(m.index);if(!s.length)return[];for(let i=0;i<s.length;i++)b.push(t.slice(s[i],s[i+1]??t.length));return b;}
+function splitBlocks(t){const b=[];
+  let tags=['nfeProc'];const reNp=/<\s*nfeProc\b/gi;let idx=[];let m;
+  while((m=reNp.exec(t))!==null)idx.push(m.index);
+  if(!idx.length){tags=['NFe'];const re2=/<\s*NFe\b/gi;while((m=re2.exec(t))!==null)idx.push(m.index);}
+  if(!idx.length)return[];
+  for(let i=0;i<idx.length;i++){const sl=t.slice(idx[i],idx[i+1]??t.length);if(sl && sl.length>20)b.push(sl);}
+  return b;}
 function parseDoc(s){const cleanStart=s.replace(/^[\s\S]*?(?=<)/,'');const d=(new DOMParser()).parseFromString(cleanStart,'text/xml');
 if(d.querySelector('parsererror')){const c=s.replace(/xmlns(:\w+)?="[^"]*"/g,'');const d2=(new DOMParser()).parseFromString(c,'text/xml');return d2.querySelector('parsererror')?null:d2;}return d;}
 const gt=(e,t)=>{const n=e?.getElementsByTagName(t);return n.length?(n[0].textContent||'').trim():'';};
